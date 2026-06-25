@@ -51,6 +51,15 @@ export const MessageModel = {
     );
   },
 
+  async clearConversation(userA, userB) {
+    await Message.deleteMany({
+      $or: [
+        { sender_id: userA, receiver_id: userB },
+        { sender_id: userB, receiver_id: userA },
+      ],
+    });
+  },
+
   async getConversationsForUser(userId) {
     const oid = new mongoose.Types.ObjectId(userId);
 
