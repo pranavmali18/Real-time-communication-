@@ -33,4 +33,19 @@ router.get("/:userId", async (req, res) => {
   res.json({ messages });
 });
 
+// DELETE /api/messages/:userId  -> clear all messages between current user and :userId
+router.delete("/:userId", async (req, res) => {
+  try {
+    const otherUserId = req.params.userId;
+    const otherUser = await UserModel.findById(otherUserId);
+    if (!otherUser) return res.status(404).json({ error: "User not found" });
+
+    await MessageModel.clearConversation(req.userId, otherUserId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Clear chat error:", err);
+    res.status(500).json({ error: "Failed to clear chat" });
+  }
+});
+
 export default router;
