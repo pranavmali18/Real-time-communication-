@@ -9,8 +9,24 @@ export default function ChatWindow({ partner, onMessageSent }) {
   const [loading, setLoading] = useState(true);
   const [partnerOnline, setPartnerOnline] = useState(false);
   const [partnerTyping, setPartnerTyping] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  async function handleClearChat() {
+    setClearing(true);
+    try {
+      await api.delete(`/messages/${partner.id}`);
+      setMessages([]);
+      onMessageSent?.();
+    } catch (err) {
+      console.error("Failed to clear chat", err);
+    } finally {
+      setClearing(false);
+      setShowConfirm(false);
+    }
+  }
 
   // Load message history whenever the selected partner changes
   useEffect(() => {
@@ -111,12 +127,39 @@ export default function ChatWindow({ partner, onMessageSent }) {
 
   return (
     <div className="flex-1 flex flex-col h-full">
+      {/* Confirm Dialog */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-80">
+            <h3 className="font-semibold text-gray-800 text-lg mb-1">Clear chat?</h3>
+            <p className="text-sm text-gray-500 mb-5">
+              All messages with <span className="font-medium">{partner.username}</span> will be permanently deleted for both sides.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 text-sm rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearChat}
+                disabled={clearing}
+                className="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 transition"
+              >
+                {clearing ? "Clearing..." : "Clear chat"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-5 py-3 border-b border-gray-200 flex items-center gap-3 bg-white">
         <div className="w-9 h-9 rounded-full bg-blue-500 text-white flex items-center justify-center font-medium uppercase">
           {partner.username[0]}
         </div>
-        <div>
+        <div className="flex-1">
           <p className="font-medium text-gray-800">{partner.username}</p>
           <p className="text-xs text-gray-500">
             {partnerTyping ? (
@@ -128,6 +171,13 @@ export default function ChatWindow({ partner, onMessageSent }) {
             )}
           </p>
         </div>
+        <button
+          onClick={() => setShowConfirm(true)}
+          title="Clear chat"
+          className="text-gray-400 hover:text-red-500 transition p-2 rounded-lg hover:bg-red-50"
+        >
+          🗑️
+        </button>
       </div>
 
       {/* Messages */}
@@ -166,7 +216,7 @@ export default function ChatWindow({ partner, onMessageSent }) {
 }
 
 function MessageBubble({ message, isMine }) {
-  const time = new Date(message.created_at).toLocaleTimeString([], {
+  const time = new Date(message.created_at ).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
